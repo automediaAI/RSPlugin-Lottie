@@ -3,7 +3,7 @@ Lottie Plugin for React Studio
 based on [react-lottie-player](https://www.npmjs.com/package/react-lottie-player)
 
 # Instructions
-1. Download from [here](https://github.com/automediaAI/RSPlugin-Lottie/releases/download/1.0/Lottie.plugin.zip)
+1. Download from [here](hhttps://github.com/automediaAI/RSPlugin-Lottie/releases/download/1.1/Lottie.plugin.zip)
 2. Access 'Components Plugin' folder from: React Studio Menu > Plugins > Show Plugin Manager > Show Plugins folder in Finder
 3. Unzip and paste .plugin file in this folder
 4. Click 'Reload Plugins' from Plugin Menu
