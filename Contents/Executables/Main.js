@@ -1,7 +1,11 @@
 /*
- React Studio wrapper for the 'react-rating' npm package.
+ React Studio wrapper for the 'react-lottie-player' npm package.
 
- - 2017.02.27 / Pauli Ojala / pauli@neonto.com
+ - 2020 / Nipun Khanna / @2nipun / automedia.ai 
+
+. v1.1
+. Lottie Icon from https://github.com/ascora/LottieSharp 
+
  */
 
 
@@ -10,111 +14,86 @@
 this.describePlugin = function(id, lang) {
   switch (id) {
     case 'displayName':
-      return "Rating";
+      return "Lottie";
 
     case 'shortDisplayText':
-      return "Visualize ratings on a scale.";
+      return "Embed Lottie files";
 
     case 'defaultNameForNewInstance':
-      return "rating";
+      return "lottie";
   }
 }
 
-
+// This is all data for the plugin 
 // -- private variables --
 
 this._data = {
-    readonly: false,
-	minValue: 0,
-	maxValue: 5,
-	iconType: 0,
-	color: [1, 1, 0, 1],
-	customComponent_full: '',
-	customComponent_empty: '',
+  lottieJson: '', 
+  // loop:'true',
+  // play : 'true', 
+  speed: 1, 
 };
 
 
+
+// OFFICIAL dont touch 
 // -- persistence, i.e. saving and loading --
 
 this.persist = function() {
   return this._data;
 }
 
-this.unpersist = function(data) {
-	if ( !Array.isArray(data.color))
-		data.color = [1, 1, 0, 1];
-
-    if ( !data.readonly)
-      data.readonly = false;
-  
-	this._data = data;
+this.unpersist = function(data) {  
+  this._data = data;
 }
 
 
+// WHAT you see in settings in React Studio
 // -- inspector UI --
 
 this.inspectorUIDefinition = [
   {
-    "type": "checkbox",
-    "id": "readonly",
-    "label": "Read only (user can't modify)",
-    "actionBinding": "this.onUIChange"
-  },
-  {
     "type": "label",
-    "text": "Min/max values determine the scale:",
-    "paddingTop": 20,
-  },
-  {
-    "type": "numberinput",
-    "id": "minValue",
-    "label": "Min value",
-    "min": 0,
-    "max": 19,
-    "increment": 1,
-    "actionBinding": "this.onUIChange"
-  },
-  {
-    "type": "numberinput",
-    "id": "maxValue",
-    "label": "Max value",
-    "min": 1,
-    "max": 20,
-    "increment": 1,
-    "actionBinding": "this.onUIChange"
-  },
-  
-  {
-    "type": "label",
-    "text": "You can choose components to use as the icons.\nE.g. you could use a star as the rating icon\nand an empty component as the 'empty rating' icon.",
+    "text": "Paste the Lottie JSON below. \nSelect the speed (1=100%) \nDimensions come from React Studio canvas \nFile auto plays and loops infinitely",
     "height": 40,
-    "paddingTop": 20,
   },
   {
-    "type": "label",
-    "text": "Custom rating icon:"
-  },
-	{
-    "type": "component-picker",
-    "id": "customComponent_full",
+    "type": "numberinput",
+    "id": "speed",
+    "label": "Speed",
+    "min": 0.1,
+    "max": 10,
+    "increment": 0.1,
     "actionBinding": "this.onUIChange"
   },
-	{
-    "type": "label",
-    "text": "Custom icon for empty rating:"
-  },
-	{
-    "type": "component-picker",
-    "id": "customComponent_empty",
-    "actionBinding": "this.onUIChange"
+  // {
+  //   "type": "checkbox",
+  //   "id": "loop",
+  //   "actionBinding": "this.onUIChange"
+  // },
+  // {
+  //   "type": "checkbox",
+  //   "id": "play",
+  //   "actionBinding": "this.onUIChange"
+  // },
+    {
+    "type": "textinput",
+    "id": "lottieJson", // MAKE SURE THIS is same as teh variable name in this._data{}
+    "label": "Paste JSON from Lottie file",
+    "actionBinding": "this.onUIChange",
+    "multiline": true, 
+    "height": 500,  // HEIGHT of component in RS 
+    // "paddingTop": 10,
   }
 ];
 
-this._uiTextFields = [];
-this._uiCheckboxes = [ 'readonly' ];
-this._uiNumberFields = [ 'minValue', 'maxValue', 'iconType' ];
-this._uiColorPickers = [ 'color' ];
-this._uiComponentPickers = [ 'customComponent_full', 'customComponent_empty' ];
+// ACTUAL Settings declared 
+this._uiTextFields = [ 'lottieJson' ];
+this._uiCheckboxes = [];
+// this._uiCheckboxes = ['loop', 'play'];
+this._uiNumberFields = ['speed'];
+this._uiColorPickers = [];
+this._uiComponentPickers = [];
 
 this._accessorForDataKey = function(key) {
   if (this._uiTextFields.includes(key)) return 'text';
@@ -131,7 +110,7 @@ this.onCreateUI = function() {
     var prop = this._accessorForDataKey(controlId);
     if (prop) {
       try {
-      	ui.getChildById(controlId)[prop] = this._data[controlId];
+        ui.getChildById(controlId)[prop] = this._data[controlId];
       } catch (e) {
         console.log("** can't set ui value for key "+controlId+", prop "+prop);
       }
@@ -153,181 +132,87 @@ this.onUIChange = function(controlId) {
 // -- plugin preview --
 
 this.renderIcon = function(canvas) {
-  this._renderPreview(canvas, null, true, 5);
-};
-
-this.renderEditingCanvasPreview = function(canvas, controller) {
-  this._renderPreview(canvas, controller, false, this._data.maxValue - this._data.minValue);
-}
-
-this._renderPreview = function(canvas, controller, fitToWidth, numIcons) {
   var ctx = canvas.getContext('2d');
   var w = canvas.width;
   var h = canvas.height;
   ctx.save();
-  
-  var scale = 1;
-  if (controller && controller.renderPixelsPerWebPixel) {
-    scale = controller.renderPixelsPerWebPixel;
-    ctx.scale(scale, scale);
+  if (this.icon == null) {
+    // got the YouTube logo online
+    var path = Plugin.getPathForResource("logo.png");  // LOGO image 
+    this.icon = Plugin.loadImage(path);
   }
-	
-	var customIcon_full = this.getComponentPreviewImage(this._data.customComponent_full);
-	var customIcon_empty = this.getComponentPreviewImage(this._data.customComponent_empty);
-  
-  var color = "rgba(0, 0, 0, 0.75)";
-  ctx.fillStyle = color;
-  ctx.strokeStyle = color;
-  
-  ctx.strokeWidth = scale * 0.7;
-
-  var xMargin = 1;
-  var yMargin = 2;
-  var spacing = 3;
-  var r;
-  if (fitToWidth) {
-    r = (w - 2*xMargin - (numIcons-1)*spacing) / numIcons / 2;
-    yMargin = h/2 - r;
-  } else {
-    r = 9;
-  }
-  
-  var x = xMargin + r;
-  var y = yMargin + r;
-  for (var i = 0; i < numIcons; i++) {
-    var w = r*2 + spacing;
-		var icon = null;
-		if (numIcons > 1 && i === numIcons - 1) {
-			icon = customIcon_empty;
-		}
-		if ( !icon) {
-			icon = customIcon_full;
-		}
-		if (icon) {
-			var iconW = icon.width/scale;
-			var iconH = icon.height/scale;
-			ctx.drawImage(icon, x-r, y-r, iconW, iconH);
-          
-          if ( !fitToWidth) 
-            w = iconW;
-		} else {
-          /*
-          // draw filled circle with outline
-	      ctx.beginPath();
-	      ctx.arc(x, y, r, 0, Math.PI*2, false);
-	      ctx.stroke();
-	      ctx.beginPath();
-	      ctx.arc(x, y, r - 2, 0, Math.PI*2, false);
-	      ctx.fill();
-          */
-          // draw star
-          ctx.beginPath();
-          ctx.moveTo(x, y - r);
-          for (var k = 1; k < 10; k++) {
-            var t = -Math.PI/2 + (k/5 * Math.PI);
-            var rp = (k % 2 == 1) ? r*0.4 : r;
-            ctx.lineTo(x + rp*Math.cos(t), y + rp*Math.sin(t));
-          }
-          if (i < numIcons - 1) {
-            ctx.fill();
-          }
-          ctx.closePath();
-          ctx.stroke();
-		}
-    
-    x += w;
-  }
-
+  var iconW = this.icon.width;
+  var iconH = this.icon.height;
+  var aspectScale = Math.min(w/iconW, h/iconH);
+  var scale = 0.9 * aspectScale; // add some margin around icon
+  iconW *= scale;
+  iconH *= scale;
+  ctx.drawImage(this.icon, (w-iconW)*0.5, (h-iconH)*0.5, iconW, iconH);
   ctx.restore();
+};
+
+// WHAT shows in the RS area after dragging component 
+this.renderEditingCanvasPreview = function(canvas, controller) {
+  this._renderPreview(canvas, controller);
 }
 
+// REAL preview if needed to show while in dev
+this._renderPreview = function(canvas, controller) {
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width;
+  var h = canvas.height;
+  ctx.save();
+
+  if (this.icon == null) {
+    var path = Plugin.getPathForResource("logo.png");
+    this.icon = Plugin.loadImage(path);
+  }
+  var iconW = this.icon.width;
+  var iconH = this.icon.height;
+  var aspectScale = Math.min(w/iconW, h/iconH);
+  var scale = 0.9 * aspectScale; // add some margin around icon
+  iconW *= scale;
+  iconH *= scale;
+  ctx.drawImage(this.icon, (w-iconW)*0.5, (h-iconH)*0.5, iconW, iconH);
+  ctx.restore();
+
+}
+
+
+// ACTUALLY TELLING REACT WHERE TO PULL COMPONENT FROM 
 
 // -- code generation, React web --
 
 this.getReactWebPackages = function() {
   // Return dependencies that need to be included in the exported project's package.json file.
   // Each key is an npm package name that must be imported, and the value is the package version.
-  // 
-  // Example:
-  //    return { "somepackage": "^1.2.3" }
   
   return {
-    "react-rating": "^1.1.0"
+    "react-lottie-player": "^1.0.1"  // FROM NPM JS, name of package and version
   };
 }
 
 this.getReactWebImports = function(exporter) {
-	var arr = [
-    { varName: "Rating", path: "react-rating" }
+  var arr = [
+    { varName: "LottieController", path: "react-lottie-player" }
   ];
-	
-	var customComp_full = exporter.classNameForComponentByName(this._data.customComponent_full);
-	if (customComp_full) {
-		arr.push({ varName: customComp_full, path: `./${customComp_full}` });
-	}
-	var customComp_empty = exporter.classNameForComponentByName(this._data.customComponent_empty);
-	if (customComp_empty && customComp_empty != customComp_full) {
-		arr.push({ varName: customComp_empty, path: `./${customComp_empty}` });
-	}
-	
-	return arr;
+  
+  return arr;
 }
 
 this.writesCustomReactWebComponent = false;
 
-this.reactWebDataLinkKeys = [
-	"value"
-];
-
-this.reactWebInteractions = [
-	"valueChange"  // This is the id for the default interaction available to plugins in React Studio
-];
-
-this.describeReactWebInteraction = function(exporter, interactionId) {
-	switch (interactionId) {
-		case 'valueChange':
-			return {
-				actionMethod: {
-					arguments: ['rating'],
-					getDataExpression: 'rating'
-				}
-			};
-	}
-	return null;
-}
-
-this.getReactWebJSXCode = function(exporter) {
-  var min = this._data.minValue;
-  var max = this._data.maxValue;
-  var readonly = this._data.readonly;
-  
-  var jsx = `<Rating readonly={${readonly}} start={${min}} stop={${max}}`;
-
-  var valueLinkage = exporter.getExpressionForLinkKey('value');
-  if (valueLinkage) {
-    jsx += ` initialRating={parseInt(${valueLinkage})}`;
-  }
-  
-  var onValueChange = exporter.getCallbackForInteraction('valueChange');
-  if (onValueChange) {
-	jsx += ` onChange={${onValueChange}}`;
-  }
-  
-  var customComp = exporter.classNameForComponentByName(this._data.customComponent_full);
-  if (customComp) {
-    jsx += ` fullSymbol={<${customComp} locStrings={this.props.locStrings} />}`;
-  } else {
-    jsx += " fullSymbol={<div style={{fontSize:18, width:20, height:20}}>★</div>}";
-  }
-  
-  customComp = exporter.classNameForComponentByName(this._data.customComponent_empty);
-  if (customComp) {
-    jsx += ` emptySymbol={<${customComp} locStrings={this.props.locStrings} />}`;
-  } else {
-    jsx += " emptySymbol={<div style={{fontSize:17, width:20, height:20}}>☆</div>}";
-  }
-		
-  jsx += ` />`;
+this.getReactWebJSXCode = function(exporter) {  
+  const lottieJson = this._data.lottieJson; // FROM Variable declared at top  
+  // const loop = this._data.loop;
+  // const play = this._data.play;
+  const speed = this._data.speed; 
+  var jsx = `<LottieController
+        play
+        loop
+        speed = {${speed}}
+        animationData={${lottieJson}}
+        style={{ width: '100%', height: '100%' }} />`;
   return jsx;
 }
 

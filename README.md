@@ -11,8 +11,9 @@ based on [react-lottie-player](https://www.npmjs.com/package/react-lottie-player
 
 # How to use 
 1. Paste the LottieJSON (you can get these from LottieFiles.com)
-2. Select dimensions, and speed (1=100%)
-3. File plays on auto loop
+2. Select speed (1=100%)
+3. Change dimensions from React Studio Canvas
+4. File plays on auto loop
 
 # Credits
 Logo from [LottieSharp](https://github.com/ascora/LottieSharp )
